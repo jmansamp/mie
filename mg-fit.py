@@ -1,7 +1,6 @@
 import scipy.special as sp
 import numpy as np
 import matplotlib.pylab as plt
-from miepython import _mie_An_Bn
 from scipy.misc import derivative
 from scipy.optimize import curve_fit
 
@@ -162,9 +161,9 @@ def mie_extinction(q,a,b):
     E = Epsilon_Bulk[:,1][q]
     Ei = Epsilon_Bulk[:,2][q]
     lmda = np.array(Epsilon_Bulk[:,0][q])
+    print(lmda)
     Pa = (1.-e**2)/e**2*(1./(2*e)*np.log((1.+e)/(1.-e))-1.)
     Pb = (1-Pa)/2
-    Pc = (1-Pa)/2
 
     V = (4*np.pi/3)*a*b**2
     k = 2*np.pi/(lmda*1e-9)
@@ -174,33 +173,33 @@ def mie_extinction(q,a,b):
 
     gamma = gammareduced(R)
 
-    Em = 4
+    Em = nmatrice**2
 
-    E1 = -1 #+ w_p**2*((w**2+gammabulk**2)**-1-(w**2+gamma**2)**-1)
+    E1 = E #+ w_p**2*((w**2+gammabulk**2)**(-1)-(w**2+gamma**2)**(-1))
 
     E2 = Ei #+ w_p**2/w*(gamma/(w**2+gamma**2)-gammabulk/(w**2+gammabulk**2))
     
 
     return 2*np.pi*V*Em**(3/2.)/(3*lmda*1e-9)*(E2/Pa**2/((E1+(1-Pa)/Pa*Em)**2
-        + E2**2) + E2/Pb**2/((E1+(1-Pb)/Pa*Em)**2 + E2**2) + E2/Pc**2/((E1+(1-Pc)/Pc*Em)**2 + E2**2))
+        + E2**2) + 2*E2/Pb**2/((E1+(1-Pb)/Pb*Em)**2 + E2**2))
 
 lmda_list = np.linspace(0,160,161, dtype = int)
 
 xarray = Epsilon_Bulk[:,0][lmda_list]
 
-def absorbmg(q,N,R,p,B):
-    d = 10e-3
-    return -B*np.log10(np.exp(-1*d*N*mie_extinction(q,*axis(R,p))))
+def absorbmg(q,N,a,b,B):
+    d = 1e-3
+    return -B*np.log10(np.exp(-1*d*N*mie_extinction(q,a,b)))
 
 def axis(R,p):
     v = R**3
     b = (v/p)**(1/3)
-    a = p*b
+    a = (p*b)
     return a,b
     
 
 # Demonstrating exctinction with varying ar
-mie_sp = mie_extinction(lmda_list,20e-9,10e-9)
+mie_sp = absorbmg(lmda_list,10000000000,50e-9,10e-9,1)
 
 mie_g1 = mie_extinction(lmda_list,*axis(5e-9,1.2))
 
