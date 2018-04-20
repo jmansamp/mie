@@ -3,6 +3,8 @@ import numpy as np
 import matplotlib.pylab as plt
 from scipy.misc import derivative
 from scipy.optimize import curve_fit
+import scipy.integrate
+from lmfit import minimize, Parameters
 
 uv_data = np.loadtxt('uv_samp.tsv')
 
@@ -18,7 +20,7 @@ spr = 0
 sprabs = 0
 
 for line in uv_data:
-    if line[0]%5==0 and line[0]>= 400:
+    if line[0]%5==0 and line[0]>= 300:
         ydata.append(line[1])
         xdata.append(line[0])
     if line[1] > sprabs and line[0]>450:
@@ -147,8 +149,7 @@ def absorb(q,N,R,B):
     d = 10e-3
     return -B*np.log10(np.exp(-1*d*N*extinction(q,R)))
 
-#popt, pcov = curve_fit(absorb, np.linspace(40,130,91,dtype = int),
-#    ydata,p0=[1E10,10e-9,0.5], bounds = (0,[1e20,50e-9,1000000]))
+
 
 #plt.plot(xdata,absorb(np.linspace(40,130,91,dtype
 #    = int),popt[0],popt[1],popt[2]), label = 'Fit')
@@ -157,11 +158,10 @@ def absorb(q,N,R,B):
 #plt.show()
 
 def mie_extinction(q,a,b):
-    e = np.sqrt(1.-(float(b)/a)**2.)
+    e = np.sqrt(1.-(b/a)**2.)
     E = Epsilon_Bulk[:,1][q]
     Ei = Epsilon_Bulk[:,2][q]
     lmda = np.array(Epsilon_Bulk[:,0][q])
-    print(lmda)
     Pa = (1.-e**2)/e**2*(1./(2*e)*np.log((1.+e)/(1.-e))-1.)
     Pb = (1-Pa)/2
 
@@ -169,7 +169,7 @@ def mie_extinction(q,a,b):
     k = 2*np.pi/(lmda*1e-9)
     w = c*k
     
-    R = (a*b**2)**(1/3)
+    R = ((a*b**2)**(1/3))
 
     gamma = gammareduced(R)
 
@@ -199,15 +199,15 @@ def axis(R,p):
     
 
 # Demonstrating exctinction with varying ar
-mie_sp = absorbmg(lmda_list,10000000000,50e-9,10e-9,1)
+#mie_sp = absorbmg(lmda_list,10000000000,50e-9,10e-9,1)
 
-mie_g1 = mie_extinction(lmda_list,*axis(5e-9,1.2))
+#mie_g1 = mie_extinction(lmda_list,*axis(5e-9,1.2))
 
-mie_g2 = mie_extinction(lmda_list,*axis(5e-9,2))
+#mie_g2 = mie_extinction(lmda_list,*axis(5e-9,2))
 
-mie_g3 = mie_extinction(lmda_list,15e-9,5e-9)
+#mie_g3 = mie_extinction(lmda_list,15e-9,5e-9)
 
-plt.plot(xarray, mie_sp, label = 'Mie particle with ar = 1, V = 125 nm^3')
+#plt.plot(xarray, mie_sp, label = 'Mie particle with ar = 1, V = 125 nm^3')
 
 #plt.plot(xarray,mie_g1, label = 'MG particle with ar = 1.2, V = 125 nm^3')
 
@@ -215,18 +215,65 @@ plt.plot(xarray, mie_sp, label = 'Mie particle with ar = 1, V = 125 nm^3')
 
 #plt.plot(xarray,mie_g3, label = 'MG particle with ar = 2, V = 125 nm^3')
 
-plt.legend(loc=0)
+#plt.legend(loc=0)
 
-plt.show()
+#plt.show()
 
 
 # Demonstrating exctinction with varying size
 
 
+def integrand(p, args):
+    q, R, Sg = args
+    return mie_extinction(q,*axis(R,p))*1/(Sg*np.sqrt(2*np.pi))*np.exp(-(p-1)**2/(2*Sg**2))
 
 
-def gauss(a,b,Sg):
-    return 1/(Sg*np.sqrt(2*np.pi))*np.exp(-(a/b-1)**2/(s*Sg**2))
+def curve(q, R, Sg):
+    print(q)
+    res = scipy.integrate.quad(integrand,1,10000, [q,R,Sg])
+    return res[0]
 
-def total(q,a,b,Sg, Ns, Ne):
-    return 1
+vcurve = np.vectorize(curve, excluded=set([1]))
+
+
+def total(q, R, Sg, Ns, Ne):
+    print(q)
+    return Ns*extinction(q,R) + Ne*vcurve(q, R,Sg)
+
+def absorbtot(q,Sg,Ns,Ne, R, B):
+    d = 10e-3
+    return -B*np.log10(np.exp(-1*d*total(q, R, Sg, Ns, Ne)))
+
+
+def residual(params, q, data):
+    R = params['R']
+    Sg = params['Sg']
+    Ns = params['Ns']
+    Ne = params['Ne']
+    B = params['B']
+    
+    return data - absorbtot(q,Sg,Ns,Ne, R,B)
+
+
+params = Parameters()
+params.add('R', value = 10e-9, vary = False)
+params.add('Sg', value = 1)
+params.add('Ns', value = 1e12)
+params.add('Ne', value = 1e10)
+params.add('B', value = 5e6, vary = False)
+
+out = minimize(residual, params, args =(np.linspace(20,130,111,dtype = int),
+  ydata))
+
+
+popt1,pcov1 = curve_fit(absorb, np.linspace(20,130,111,dtype = int),
+        ydata,p0=[1.735E10,2.35e-8,2.5e6], bounds = (0,[1e20,100e-9,1e15]))
+
+Rnew = popt1[1]
+
+Bnew = popt1[2]
+
+
+popt, pcov = curve_fit(absorbtot, np.linspace(20,130,111,dtype = int),
+        ydata,p0=[2,popt1[0],0], bounds = (0,[10,1e20,1e20]))
+
