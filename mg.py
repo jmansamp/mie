@@ -113,7 +113,7 @@ def gammareduced(R):
 def extinction(q,R):
 
     gamma = gammareduced(R)
-    
+  
     lmda = Epsilon_Bulk[:,0][q]
     
     E = Epsilon_Bulk[:,1][q]
@@ -199,7 +199,9 @@ def axis(R,p):
     
 
 # Demonstrating exctinction with varying ar
-#mie_sp = absorbmg(lmda_list,10000000000,50e-9,10e-9,1)
+mie_sp = absorb(lmda_list,1e10,5e-9,1)
+
+mie_sp1 = absorb(lmda_list,1e7,50e-9,1)
 
 #mie_g1 = mie_extinction(lmda_list,*axis(5e-9,1.2))
 
@@ -229,7 +231,6 @@ def integrand(p, args):
 
 
 def curve(q, R, Sg):
-    print(q)
     res = scipy.integrate.quad(integrand,1,10000, [q,R,Sg])
     return res[0]
 
@@ -237,7 +238,6 @@ vcurve = np.vectorize(curve, excluded=set([1]))
 
 
 def total(q, R, Sg, Ns, Ne):
-    print(q)
     return Ns*extinction(q,R) + Ne*vcurve(q, R,Sg)
 
 def absorbtot(q,Sg,Ns,Ne, R, B):
@@ -262,18 +262,18 @@ params.add('Ns', value = 1e12)
 params.add('Ne', value = 1e10)
 params.add('B', value = 5e6, vary = False)
 
-out = minimize(residual, params, args =(np.linspace(20,130,111,dtype = int),
-  ydata))
+#out = minimize(residual, params, args =(np.linspace(20,130,111,dtype = int),
+#  ydata))
 
 
-popt1,pcov1 = curve_fit(absorb, np.linspace(20,130,111,dtype = int),
-        ydata,p0=[1.735E10,2.35e-8,2.5e6], bounds = (0,[1e20,100e-9,1e15]))
+#popt1,pcov1 = curve_fit(absorb, np.linspace(20,130,111,dtype = int),
+      #  ydata,p0=[1.735E10,2.35e-8,2.5e6], bounds = (0,[1e20,100e-9,1e15]))
 
-Rnew = popt1[1]
+#Rnew = popt1[1]
 
-Bnew = popt1[2]
+#Bnew = popt1[2]
 
 
-popt, pcov = curve_fit(absorbtot, np.linspace(20,130,111,dtype = int),
-        ydata,p0=[2,popt1[0],0], bounds = (0,[10,1e20,1e20]))
+#popt, pcov = curve_fit(absorbtot, np.linspace(20,130,111,dtype = int),
+       # ydata,p0=[2,popt1[0],0], bounds = (0,[10,1e20,1e20]))
 
