@@ -1,13 +1,15 @@
 import numpy as np
 from lmfit import minimize, Parameters, Model
-import mg 
+import mg
 import matplotlib.pylab as plt
 
 
 
-#we need to define a function, normalize data 
+#we need to define a function, normalize data
 
-data = np.loadtxt("uv_samp.tsv")
+#set to +-1 for +-5 nm offset
+
+data = np.loadtxt("Sample.dat")
 
 x = []
 y = []
@@ -16,23 +18,27 @@ spr =0
 sprabs = 0
 
 for line in data:
-    if line[0]%5==0 and line[0]>= 200:
+    if line[0]%5==0 and line[0]>= 300 and line[0]<=1000:
         y.append(line[1])
-        x.append(int(line[0]))
+        x.append(int(line[0])
     if line[1] > sprabs and line[0]>450:
         spr = line[0]
         sprabs = line[1]
 
-q_list = np.linspace(0,130,131, dtype = int)
+q_list = np.linspace(20,160,141, dtype = int)[::-1]
 
+y = y
 
-
+#define fitting model according to MG function
 miemodel = Model(mg.absorbtot)
 
-params = miemodel.make_params(Ns = 4e14, Ne = 1e5, B = 6542.15582,
-        R = 7.9977e-9, vary=False, Sg = 0.5)
+#initialized fitting parameters
+params = miemodel.make_params(Ns = 1e12, Ne = 1e12, B = 1.,
+        R = 4.2e-9, Sg = 0.75)
 
-params['Ns'].set(vary = False)
+#Set constant (fixed) parameters
+params['Ns'].set(vary = True)
+params['Sg'].set(vary = True)
 params['B'].set(vary = False)
 params['R'].set(vary = False)
 
@@ -46,4 +52,4 @@ plt.plot(x, result.best_fit, 'r-')
 plt.show()
 
 
-        
+

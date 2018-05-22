@@ -28,7 +28,7 @@ for line in uv_data:
         sprabs = line[1]
 
 
-        
+
 ydata = np.array(ydata)/sprabs
 xdata = np.array(xdata)
 # set the A parameter coeficients
@@ -42,11 +42,11 @@ n_m = 10
 c = 299792458 #speed of light
 
 #input gold dielectric values
-Epsilon_Bulk = np.loadtxt('J&CAu.txt')
+Epsilon_Bulk = np.loadtxt('PalikAu.txt')
 
 #input normalized data
 data = np.loadtxt('Normalized Sample.Dat')
-    
+
 gammabulk = 1/2.94e-14
 v_F = 1.4e6
 ne = 5.9e28
@@ -62,7 +62,7 @@ def nu_L(L,v):
     nu_list = []
     for l in range(1,L+1):
 
-        nu_list.append(v*np.sqrt(np.pi/(2*v))*(sp.jv(l+0.5,v) + 1j*sp.yv(l+0.5,v)))   
+        nu_list.append(v*np.sqrt(np.pi/(2*v))*(sp.jv(l+0.5,v) + 1j*sp.yv(l+0.5,v)))
     return np.array(nu_list)
 
 
@@ -72,18 +72,18 @@ def dif(x, fn,L):
     x: The point at which the gradient needs to be found.
     fn: The function to be differentiated.
     h: The step size of the function which defaults to h = 0.0000000001."""
-    
+
     return (fn(L,x + h) - fn(L,x))/h
 
 
 def psi_L(L,v):
-    
+
     #return sp.riccati_yn(L,v)
     psi_list = []
-    
+
     for l in range(1,L+1):
-        psi_list.append(v*np.sqrt(np.pi/(2*v))*(sp.jv(l+0.5,v))) 
-    
+        psi_list.append(v*np.sqrt(np.pi/(2*v))*(sp.jv(l+0.5,v)))
+
     return np.array(psi_list)
 
 def difnu_L(L,v):
@@ -101,10 +101,10 @@ def b_n(L,m,x):
 
 
 def gammareduced(R):
-    A = A1 + A2*R*1e9 + A3*(R*1e9)**2 + A4*(R*1e9)**3 
-    
-    if A<0: 
-        gamma = gammabulk 
+    A = A1 + A2*R*1e9 + A3*(R*1e9)**2 + A4*(R*1e9)**3
+
+    if A<0:
+        gamma = gammabulk
     else:
         gamma = gammabulk + A*v_F/R
 
@@ -113,13 +113,13 @@ def gammareduced(R):
 def extinction(q,R):
 
     gamma = gammareduced(R)
-  
+
     lmda = Epsilon_Bulk[:,0][q]
-    
+
     E = Epsilon_Bulk[:,1][q]
-    
+
     Ei = Epsilon_Bulk[:,2][q]
-    
+
     k = 2*np.pi/(lmda*1e-9)
 
     w = c*k
@@ -127,21 +127,21 @@ def extinction(q,R):
     enne = np.sqrt(E + w_p**2*((w**2+gammabulk**2)**-1-(w**2+gamma**2)**-1)
             + 1j*(Ei + w_p**2/w*(gamma/(w**2+gamma**2)-gammabulk/(w**2+gammabulk**2))))
 
-    x = k*R*enne  
-    
+    x = k*R*enne
+
     m = nmatrice/enne
 
     a = a_n(3,m,x)
 
     b = b_n(3,m,x)
-    
+
     asum = 0
     bsum = 0
 
     for i in range(0,3):
         asum += (2*(i+1)+1)*a[i]
         bsum += (2*(i+1)+1)*b[i]
-    
+
     return -2*np.pi/(nmatrice*k)**2*(np.real(asum + bsum))
 
 
@@ -168,7 +168,7 @@ def mie_extinction(q,a,b):
     V = (4*np.pi/3)*a*b**2
     k = 2*np.pi/(lmda*1e-9)
     w = c*k
-    
+
     R = ((a*b**2)**(1/3))
 
     gamma = gammareduced(R)
@@ -178,7 +178,7 @@ def mie_extinction(q,a,b):
     E1 = E #+ w_p**2*((w**2+gammabulk**2)**(-1)-(w**2+gamma**2)**(-1))
 
     E2 = Ei #+ w_p**2/w*(gamma/(w**2+gamma**2)-gammabulk/(w**2+gammabulk**2))
-    
+
 
     return 2*np.pi*V*Em**(3/2.)/(3*lmda*1e-9)*(E2/Pa**2/((E1+(1-Pa)/Pa*Em)**2
         + E2**2) + 2*E2/Pb**2/((E1+(1-Pb)/Pb*Em)**2 + E2**2))
@@ -196,7 +196,7 @@ def axis(R,p):
     b = (v/p)**(1/3)
     a = (p*b)
     return a,b
-    
+
 
 # Demonstrating exctinction with varying ar
 mie_sp = absorb(lmda_list,1e10,5e-9,1)
@@ -251,7 +251,7 @@ def residual(params, q, data):
     Ns = params['Ns']
     Ne = params['Ne']
     B = params['B']
-    
+
     return data - absorbtot(q,Sg,Ns,Ne, R,B)
 
 
